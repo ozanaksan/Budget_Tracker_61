@@ -1,0 +1,451 @@
+/* ==========================================================================
+   1. DEĞİŞKENLER VE TEMA (Senin şablonundan uyarlandı)
+   ========================================================================== */
+:root {
+  --color: #111;
+  --background-color: #f4f7f6; /* Formların daha net okunması için hafif gri */
+  --theme-color: #ff4522;      /* Senin ana turuncu rengin */
+  --surface-color: #ffffff;    /* Kartlar ve modal arkaplanı */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color: #eee;
+    --background-color: #222;
+    --theme-color: #ff4522;
+    --surface-color: #333;
+  }
+}
+
+/* ==========================================================================
+   2. NORMALİZE & TEMEL AYARLAR (Şablon 1 ve 2'den)
+   ========================================================================== */
+* {
+  box-sizing: border-box; /* Tüm elemanların kutu modelini düzeltir */
+}
+
+html {
+  font-family: 'Source Code Pro', monospace; /* Senin monospace fontun */
+  color: var(--color);
+  background-color: var(--background-color);
+  line-height: 1.4em;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center; /* Bilgisayarda uygulamayı ortaya alır */
+}
+
+/* Form elemanlarını normalize etme */
+button, input, select {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
+}
+
+/* ==========================================================================
+   3. BÜTÇE UYGULAMASI ARAYÜZÜ
+   ========================================================================== */
+
+/* Ana Taşıyıcı (Senin .content mantığınla) */
+#app-container {
+  max-width: 480px; /* Mobilde tam ekran, bilgisayarda telefon genişliğinde durur */
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--surface-color);
+  position: relative;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+/* Üst Başlık ve Ay Seçici */
+header {
+  background-color: var(--theme-color);
+  color: #fff;
+  padding: 20px;
+}
+
+header h2 {
+  margin: 0 0 15px 0;
+}
+
+#table-selector {
+  display: flex;
+  gap: 10px;
+}
+
+#table-selector select {
+  flex: 1;
+  padding: 10px;
+  border-radius: 4px;
+  border: none;
+  background-color: var(--surface-color);
+  color: var(--color);
+}
+
+#new-table-btn {
+  background-color: #111;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Harcama Listesi */
+#expense-list {
+  padding: 20px;
+  padding-bottom: 100px; /* Buton listeyi kapatmasın diye boşluk */
+}
+
+/* Sağ Alt: Sabit Ekleme Butonu (FAB) */
+#fab-btn {
+  position: fixed;
+  bottom: 30px;
+  right: calc(50% - 240px + 30px); /* Bilgisayarda ortalanmış ekrana göre sağa hizalar */
+  width: 60px;
+  height: 60px;
+  background-color: var(--theme-color);
+  color: white;
+  font-size: 35px;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(255, 69, 34, 0.4); /* Senin temana uygun gölge */
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Telefondaysa FAB butonunu doğrudan ekranın sağına al */
+@media (max-width: 480px) {
+  #fab-btn {
+    right: 20px;
+  }
+}
+
+/* ==========================================================================
+   4. MODAL (GİZLİ EKLEME FORMU)
+   ========================================================================== */
+/* AÇILIR PENCERE (MODAL) TASARIMI VE ARKA PLAN ÖRTÜSÜ */
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85); /* Arkadaki içeriği gizleyen koyu katman */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background-color: var(--surface-color);
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); /* Derinlik hissi veren gölge */
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color);
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--theme-color); /* Şablonundaki fieldset mantığı */
+  border-radius: 5px;
+  background-color: var(--surface-color);
+  color: var(--color);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.row input { flex: 2; }
+.row select { flex: 1; }
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.primary-btn {
+  background-color: var(--theme-color);
+  color: white;
+}
+
+.secondary-btn {
+  background-color: transparent;
+  border: 1px solid var(--color) !important;
+  color: var(--color);
+}
+
+/* Harcama Listesi Satır Tasarımı */
+.expense-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--surface-color);
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border-left: 5px solid var(--theme-color);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Toplam Harcama Göstergesi Tasarımı */
+.total-display {
+  margin-top: 15px;
+  font-size: 1.8em;
+  font-weight: bold;
+  text-align: right;
+  color: #fff; /* Başlık arka planımız renkli olduğu için yazıyı beyaz yapıyoruz */
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  padding-top: 10px;
+}
+
+/* Sekme (Tab) Tasarımları */
+.tabs {
+  display: flex;
+  margin-bottom: 15px;
+  background-color: rgba(255,255,255,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.tab-btn.active {
+  background-color: var(--surface-color);
+  color: var(--theme-color);
+  opacity: 1;
+}
+
+/* Görünüm Gizleme */
+main.hidden {
+  display: none !important;
+}
+
+/* Özet Listesi Tasarımı */
+#summary-list {
+  padding: 20px;
+  padding-bottom: 100px;
+}
+
+.summary-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--surface-color);
+  padding: 20px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border-left: 5px solid #28a745; /* Özet kutuları için farklı bir renk */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.summary-month {
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.summary-total {
+  font-size: 1.4em;
+  color: #28a745;
+  font-weight: bold;
+}
+
+/* YENİ: Harcama Silme Butonu Tasarımı */
+.delete-btn {
+    background-color: transparent;
+    color: var(--theme-color); /* Tema rengin olan turuncu */
+    border: 1px solid var(--theme-color);
+    border-radius: 4px;
+    padding: 5px 10px;
+    margin-left: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    background-color: var(--theme-color);
+    color: white;
+}
+
+/* Eylem Butonları (Düzenle ve Sil) */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-left: 15px;
+}
+
+.icon-btn {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.edit-btn {
+    background-color: #f1f3f5;
+    color: #339af0;
+}
+
+.edit-btn:hover {
+    background-color: #339af0;
+    color: white;
+}
+
+.delete-btn {
+    background-color: #f1f3f5;
+    color: #ff6b6b;
+}
+
+.delete-btn:hover {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+/* Kategori İkonu Rengi */
+.cat-icon {
+    color: var(--theme-color);
+    margin-right: 8px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Pasta Grafik Taşıyıcısı */
+.chart-container {
+    background: var(--surface-color);
+    margin: 15px 20px;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: 250px; /* Mobilde çok yer kaplamaması için */
+}
+
+/* Grafik yoksa kutuyu gizle */
+.chart-container.hidden {
+    display: none;
+}
+
+/* Giriş Ekranı Tasarımı */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--background-color);
+}
+
+.auth-box {
+    background: var(--surface-color);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.auth-box h2 { color: var(--theme-color); margin-top: 0; }
+.auth-box p { color: #666; margin-bottom: 20px; font-size: 0.9em; }
+
+/* Kullanıcı Çıkış Alanı */
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0,0,0,0.15);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.logout-btn {
+    background: transparent;
+    border: 1px solid white;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.logout-btn:hover { background: white; color: var(--theme-color); }
+
+/* Görünüm Gizleme (Üst üste binmeyi engeller) */
+.hidden {
+  display: none !important; 
+}
+
+/* Sayfa yapısını flex yerine blok düzene alıp ortalamayı margin ile yapıyoruz */
+body {
+  display: block;
+  background-color: var(--background-color);
+}
+
+#auth-container, #app-container {
+  margin: 0 auto; /* Konteynerleri sayfanın tam ortasına hizalar */
+}
+
+/* YENİ: Özet Tablo Tıklanabilirlik Efekti */
+.summary-info {
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.summary-info:hover {
+    background-color: rgba(0, 0, 0, 0.05); /* Üzerine gelince hafif grileşir */
+}
