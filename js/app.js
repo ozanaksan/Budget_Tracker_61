@@ -9,9 +9,9 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// === FİREBASE MODÜLLERİ ===
+// === FİREBASE MODÜLLERİ (onSnapshot eklendi) ===
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const regSurname = document.getElementById('reg-surname');
     const regEmail = document.getElementById('reg-email');
     const regPassword = document.getElementById('reg-password');
-    const regTerms = document.getElementById('reg-terms'); // YENİ: KVKK Onay Kutusu
+    const regTerms = document.getElementById('reg-terms');
     const registerSubmitBtn = document.getElementById('register-submit-btn');
     const registerCancelBtn = document.getElementById('register-cancel-btn');
 
@@ -124,8 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(lowerCat.includes("giyim") || lowerCat.includes("kıyafet")) return "fa-shirt";
         return "fa-tag"; 
     }
-
-    // === KİMLİK DOĞRULAMA & GRUP MİMARİSİ ===
 
     function translateAuthError(errorCode) {
         switch (errorCode) {
@@ -201,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     openRegisterModalBtn.addEventListener('click', () => {
         regName.value = ""; regSurname.value = ""; regEmail.value = ""; regPassword.value = "";
-        regTerms.checked = false; // YENİ: Checkbox temizlendi
+        regTerms.checked = false; 
         registerModal.classList.remove('hidden');
     });
     registerCancelBtn.addEventListener('click', () => registerModal.classList.add('hidden'));
@@ -210,9 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = regName.value.trim(); const surname = regSurname.value.trim();
         const email = regEmail.value.trim(); const password = regPassword.value;
         
-        // YENİ: Yasal metin onayı kontrol ediliyor
         if(!regTerms.checked) return alert("Kayıt olmak için Kullanım Koşulları ve Gizlilik Politikasını kabul etmelisiniz.");
-        
         if(!name || !surname || !email || !password) return alert("Lütfen tüm alanları doldurun.");
         if(password.length < 6) return alert("Şifre en az 6 karakter olmalıdır.");
 
@@ -235,36 +231,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', async () => await signOut(auth));
 
-    // === VERİ ÇEKME ===
-
-    async function fetchInitialData() {
+    // === YENİ: GERÇEK ZAMANLI (REAL-TIME) VERİ ÇEKME ===
+    function fetchInitialData() {
         if(!currentGroupId) return;
-        try {
-            const settingsRef = doc(db, "ayarlar", currentGroupId);
-            const settingsSnap = await getDoc(settingsRef);
 
+        // 1. Ayarları (Tablolar ve Kategoriler) Anlık Dinle
+        const settingsRef = doc(db, "ayarlar", currentGroupId);
+        onSnapshot(settingsRef, (settingsSnap) => {
             if (settingsSnap.exists()) {
                 tables = settingsSnap.data().tables || ["Genel Bütçe"];
                 categories = settingsSnap.data().categories || ["Market", "Fatura", "Benzin"];
             } else {
                 tables = ["Genel Bütçe"];
                 categories = ["Market", "Fatura", "Benzin"];
-                await setDoc(settingsRef, { tables, categories });
+                setDoc(settingsRef, { tables, categories }, { merge: true });
             }
-            currentTable = tables[0];
+            
+            if (!currentTable || !tables.includes(currentTable)) currentTable = tables[0];
+            
+            renderTables(); 
+            renderCategories();
+            if(!summaryView.classList.contains('hidden')) renderSummary();
+        });
 
-            const q = query(collection(db, "harcamalar"), where("groupId", "==", currentGroupId));
-            const querySnapshot = await getDocs(q);
+        // 2. Harcamaları Anlık Dinle (Eşin veri girdiğinde anında ekrana düşer)
+        const q = query(collection(db, "harcamalar"), where("groupId", "==", currentGroupId));
+        onSnapshot(q, (querySnapshot) => {
             expenses = []; 
             querySnapshot.forEach((doc) => { expenses.push({ id: doc.id, ...doc.data() }); });
-
-            renderTables(); renderCategories(); renderExpenses();
+            
+            renderExpenses();
             if(!summaryView.classList.contains('hidden')) renderSummary();
-        } catch (error) { console.error("Veri çekme hatası:", error); }
+        });
     }
 
     // === SİLME VE DÜZENLEME MANTIĞI ===
-
     function requestDeleteExpense(expenseId) {
         deleteTargetType = "expense"; deleteTargetId = expenseId;
         confirmMessage.innerText = "Bu harcamayı silmek istediğinize emin misiniz?";
@@ -289,21 +290,15 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (deleteTargetType === "expense") {
                 await deleteDoc(doc(db, "harcamalar", deleteTargetId));
-                expenses = expenses.filter(exp => exp.id !== deleteTargetId);
+                // Artık listeden manuel silmemize gerek yok, onSnapshot otomatik güncelleyecek
             } 
             else if (deleteTargetType === "table") {
-                tables = tables.filter(t => t !== deleteTargetId);
-                if (tables.length === 0) tables = ["Genel Bütçe"];
-                if (currentTable === deleteTargetId) currentTable = tables[0];
-                await setDoc(doc(db, "ayarlar", currentGroupId), { tables, categories }, { merge: true });
+                const newTables = tables.filter(t => t !== deleteTargetId);
+                await setDoc(doc(db, "ayarlar", currentGroupId), { tables: newTables.length > 0 ? newTables : ["Genel Bütçe"], categories }, { merge: true });
 
                 const expensesToDelete = expenses.filter(e => e.table === deleteTargetId);
                 for (const exp of expensesToDelete) { await deleteDoc(doc(db, "harcamalar", exp.id)); }
-                expenses = expenses.filter(e => e.table !== deleteTargetId);
             }
-            
-            renderTables(); renderExpenses();
-            if (!summaryView.classList.contains('hidden')) renderSummary();
             confirmModal.classList.add('hidden');
         } catch (error) { alert("Silme işlemi başarısız oldu!"); } 
         finally { confirmYesBtn.innerHTML = originalText; confirmYesBtn.disabled = false; }
@@ -327,25 +322,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const index = tables.indexOf(tableToEditOldName);
-            if (index !== -1) tables[index] = newName;
-            if (currentTable === tableToEditOldName) currentTable = newName;
-            await setDoc(doc(db, "ayarlar", currentGroupId), { tables, categories }, { merge: true });
+            let updatedTables = [...tables];
+            if (index !== -1) updatedTables[index] = newName;
+            
+            await setDoc(doc(db, "ayarlar", currentGroupId), { tables: updatedTables, categories }, { merge: true });
 
             const expensesToUpdate = expenses.filter(e => e.table === tableToEditOldName);
             for (const exp of expensesToUpdate) {
                 await updateDoc(doc(db, "harcamalar", exp.id), { table: newName });
-                exp.table = newName; 
             }
-
-            renderTables(); renderExpenses();
-            if (!summaryView.classList.contains('hidden')) renderSummary();
+            
+            currentTable = newName;
             editTableModal.classList.add('hidden');
         } catch (error) { alert("Tablo adı güncellenemedi!"); } 
         finally { saveEditTableBtn.innerHTML = originalText; saveEditTableBtn.disabled = false; }
     });
 
     // === EKRAN ÇİZİM VE GRAFİK ===
-
     function renderChart(currentExpenses) {
         if (!chartContainer) return;
         if(currentExpenses.length === 0) { chartContainer.classList.add('hidden'); return; } 
@@ -496,7 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === YENİ HARCAMA KAYDETME ===
-
     if (saveBtn) {
         saveBtn.addEventListener('click', async () => {
             if (!inputAmount.value || inputAmount.value <= 0) return alert("Lütfen geçerli bir tutar girin.");
@@ -519,38 +511,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (editingExpenseId) {
                     const existingExp = expenses.find(e => e.id === editingExpenseId);
                     expenseData.createdAt = existingExp.createdAt || Date.now(); 
-                    
                     await updateDoc(doc(db, "harcamalar", editingExpenseId), expenseData);
-                    const index = expenses.findIndex(e => e.id === editingExpenseId);
-                    if(index !== -1) expenses[index] = { id: editingExpenseId, ...expenseData };
                 } else {
                     expenseData.createdAt = Date.now(); 
-                    const docRef = await addDoc(collection(db, "harcamalar"), expenseData);
-                    expenses.push({ id: docRef.id, ...expenseData });
+                    await addDoc(collection(db, "harcamalar"), expenseData);
                 }
-
-                renderExpenses();
-                if(!summaryView.classList.contains('hidden')) renderSummary(); 
 
                 inputAmount.value = ''; inputDesc.value = '';
                 editingExpenseId = null; 
                 expenseModal.classList.add('hidden');
+                // renderExpenses() fonksiyonunu buradan sildik çünkü onSnapshot otomatik tetikleyecek!
             } catch (error) { alert("İşlem başarısız!"); } 
             finally { saveBtn.innerHTML = originalText; saveBtn.disabled = false; }
         });
     }
 
     // === ARAYÜZ OLAYLARI ===
-
     if (addCategoryBtn) { addCategoryBtn.addEventListener('click', () => { inputNewCategory.value = ""; newCategoryModal.classList.remove('hidden'); }); }
     if (cancelCategoryBtn) { cancelCategoryBtn.addEventListener('click', () => newCategoryModal.classList.add('hidden')); }
     if (saveCategoryBtn) {
         saveCategoryBtn.addEventListener('click', async () => {
             const newCat = inputNewCategory.value;
             if (newCat && newCat.trim() !== "" && !categories.includes(newCat.trim())) {
-                const formattedCat = newCat.trim(); categories.push(formattedCat); 
-                await setDoc(doc(db, "ayarlar", currentGroupId), { tables, categories }, { merge: true });
-                renderCategories(); inputCategory.value = formattedCat; newCategoryModal.classList.add('hidden'); 
+                const formattedCat = newCat.trim(); 
+                let updatedCategories = [...categories, formattedCat];
+                await setDoc(doc(db, "ayarlar", currentGroupId), { tables, categories: updatedCategories }, { merge: true });
+                inputCategory.value = formattedCat; newCategoryModal.classList.add('hidden'); 
             }
         });
     }
@@ -561,9 +547,10 @@ document.addEventListener('DOMContentLoaded', () => {
         saveMonthBtn.addEventListener('click', async () => {
             const newTable = inputNewMonth.value;
             if (newTable && newTable.trim() !== "" && !tables.includes(newTable.trim())) {
-                tables.push(newTable.trim()); currentTable = newTable.trim(); 
-                await setDoc(doc(db, "ayarlar", currentGroupId), { tables, categories }, { merge: true });
-                renderTables(); renderExpenses(); newMonthModal.classList.add('hidden'); 
+                let updatedTables = [...tables, newTable.trim()];
+                await setDoc(doc(db, "ayarlar", currentGroupId), { tables: updatedTables, categories }, { merge: true });
+                currentTable = newTable.trim(); 
+                newMonthModal.classList.add('hidden'); 
             }
         });
     }
