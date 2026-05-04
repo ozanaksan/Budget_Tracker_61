@@ -3,22 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
-    <!-- YENİ: SEO, Favicon ve Mobil Uygulama (PWA) Etiketleri -->
     <title>Bütçem - Ortak Bütçe Takibi</title>
     <meta name="description" content="Aileniz ve ortaklarınızla kolayca harcamalarınızı takip edin.">
     <meta name="theme-color" content="#ff4522">
     <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="assets/icon-192.png">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
     
-    <!-- YENİ: Sosyal Medya Paylaşım (WhatsApp, vb.) Etiketleri -->
-    <meta property="og:title" content="Bütçem - Ortak Harcama Takibi">
-    <meta property="og:description" content="Aileniz ve ortaklarınızla kolayca harcamalarınızı takip edin.">
-    <meta property="og:type" content="website">
-
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -26,10 +21,26 @@
     <!-- GİRİŞ EKRANI -->
     <div id="auth-container" class="auth-container">
         <div class="auth-box">
-            <h2><i class="fa-solid fa-wallet"></i> Bütçem'e Giriş Yap</h2>
-            <p>Ortak tabloları görmek için giriş yapın.</p>
+            <h2><i class="fa-solid fa-wallet"></i> Bütçem</h2>
+            <p>Çalışma alanınıza giriş yapın.</p>
+            
+            <!-- YENİ: Şık Google Butonu -->
+            <button id="google-login-btn" class="google-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+                Google ile Devam Et
+            </button>
+            
+            <div style="display: flex; align-items: center; margin: 15px 0;">
+                <hr style="flex: 1; border-color: rgba(0,0,0,0.1);"><span style="padding: 0 10px; color: #888; font-size: 0.8em;">veya</span><hr style="flex: 1; border-color: rgba(0,0,0,0.1);">
+            </div>
+
             <div class="form-group"><input type="email" id="auth-email" placeholder="E-posta adresiniz"></div>
-            <div class="form-group"><input type="password" id="auth-password" placeholder="Şifreniz (En az 6 hane)"></div>
+            <div class="form-group"><input type="password" id="auth-password" placeholder="Şifreniz"></div>
+            
+            <div style="text-align: right; margin-bottom: 15px;">
+                <a href="#" id="forgot-password-link" style="color: var(--theme-color); font-size: 0.85em; text-decoration: none;">Şifremi unuttum</a>
+            </div>
+
             <div class="button-group">
                 <button id="login-btn" class="primary-btn"><i class="fa-solid fa-right-to-bracket"></i> Giriş Yap</button>
                 <button id="open-register-modal-btn" class="secondary-btn"><i class="fa-solid fa-user-plus"></i> Kayıt Ol</button>
@@ -37,7 +48,92 @@
         </div>
     </div>
 
-    <!-- KAYIT OLMA MODALI -->
+    <!-- ANA UYGULAMA DASHBOARD -->
+    <div id="app-container" class="hidden dashboard-layout">
+        
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fa-solid fa-wallet"></i> Bütçem</h3>
+            </div>
+            
+            <!-- Kullanıcı Profili ve Sağda Çıkış Butonu -->
+        <div class="user-profile">
+            <i class="fa-solid fa-circle-user avatar-icon"></i>
+            <div class="user-details" style="flex: 1;"> <!-- flex: 1 sayesinde buton en sağa itilir -->
+                <span class="user-email" id="user-email-display">Yükleniyor...</span>
+                <span class="workspace-badge" id="current-workspace-display">Ortak Alan</span>
+            </div>
+            <!-- YENİ: Sağa Yaslı Kompakt Çıkış Butonu -->
+            <button id="logout-btn" class="logout-mini-btn" title="Çıkış Yap">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+        </div>
+
+            <nav class="sidebar-nav">
+                <span class="nav-section-title">GÖRÜNÜM</span>
+                <button id="tab-active" class="nav-btn active"><i class="fa-solid fa-table"></i> Aktif Tablo</button>
+                <button id="tab-summary" class="nav-btn"><i class="fa-solid fa-list"></i> Tüm Tablolar</button>
+
+                <span class="nav-section-title">ÇALIŞMA ALANLARI</span>
+                <button id="open-group-modal-btn" class="nav-btn"><i class="fa-solid fa-users"></i> Alan Değiştir / Katıl</button>
+
+                <span class="nav-section-title">ARAÇLAR</span>
+                <button id="export-excel-btn" class="nav-btn text-success"><i class="fa-solid fa-file-excel"></i> Excel Olarak İndir</button>
+                <button id="open-feedback-btn" class="nav-btn"><i class="fa-solid fa-paper-plane"></i> Bize Ulaşın</button>
+            </nav>
+
+            <div class="sidebar-footer">
+            </div>
+        </aside>
+
+        <!-- SAĞ İÇERİK ALANI -->
+        <!-- SAĞ İÇERİK ALANI -->
+        <div class="main-content">
+            <header class="content-header">
+                <div id="table-selector">
+                    <select id="month-select" class="compact-input"></select>
+                    <button id="new-table-btn" class="compact-btn" title="Yeni Tablo Ekle"><i class="fa-solid fa-plus"></i></button>
+                    <!-- YENİ: Toplam göstergesi artık en sağda yalnız değil, butonun hemen yanında! -->
+                    <div id="total-display" class="total-display">Toplam: 0 ₺</div>
+                </div>
+            </header>
+
+            <main id="expense-view">
+                <!-- 1. EN ÜSTTE GRAFİK -->
+                <div id="chart-container" class="chart-container compact-chart"><canvas id="expenseChart"></canvas></div>
+                
+                <!-- 2. GRAFİĞİN ALTINDA FİLTRELE BUTONU -->
+                <div class="filter-toggle-container">
+                    <button id="toggle-filter-btn">
+                        <i class="fa-solid fa-filter"></i> Filtrele
+                    </button>
+                </div>
+
+                <!-- 3. BUTONUN HEMEN ALTINDA AÇILAN MODERN PANEL -->
+                <div id="filter-panel" class="filter-panel hidden">
+                    <div class="filter-group">
+                        <label>Kategori</label>
+                        <select id="filter-category"><option value="">Tümü</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Ekleyen Kişi</label>
+                        <select id="filter-user"><option value="">Tümü</option></select>
+                    </div>
+                    <button id="clear-filter-btn" title="Filtreyi Temizle"><i class="fa-solid fa-eraser"></i> Temizle</button>
+                </div>
+
+                <!-- 4. EN ALTTA HARCAMA LİSTESİ -->
+                <div id="expense-list"></div>
+            </main>
+            
+            <main id="summary-view" class="hidden"><div id="summary-list"></div></main>
+            <button id="fab-btn"><i class="fa-solid fa-plus"></i></button>
+        </div>
+    </div>
+
+    <!-- MODALLAR (Tümü app-container'ın DIŞINDA olmalı) -->
+    
+    <!-- Kayıt Modalı -->
     <div id="register-modal" class="modal hidden" style="z-index: 1050;">
         <div class="modal-content auth-box" style="box-shadow: none; max-width: 400px; margin: 0 auto;">
             <h3 style="color: var(--theme-color); margin-bottom: 20px;">Yeni Hesap Oluştur</h3>
@@ -45,15 +141,12 @@
             <div class="form-group"><input type="text" id="reg-surname" placeholder="Soyadınız"></div>
             <div class="form-group"><input type="email" id="reg-email" placeholder="E-posta adresiniz"></div>
             <div class="form-group"><input type="password" id="reg-password" placeholder="Şifreniz (En az 6 hane)"></div>
-            
-            <!-- YENİ: YASAL ZORUNLULUK (KVKK VE KULLANIM KOŞULLARI) ONAY KUTUSU -->
             <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px; text-align: left; margin-top: 15px; margin-bottom: 20px;">
                 <input type="checkbox" id="reg-terms" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer;">
                 <label for="reg-terms" style="font-size: 0.85em; color: #666; cursor: pointer; line-height: 1.4;">
-                    <a href="#" style="color: var(--theme-color);">Kullanım Koşulları</a> ve <a href="#" style="color: var(--theme-color);">Gizlilik Politikası (KVKK)</a> metinlerini okudum ve kabul ediyorum.
+                    <a href="#" id="open-terms-btn" style="color: var(--theme-color);">Kullanım Koşulları</a> ve <a href="#" id="open-privacy-btn" style="color: var(--theme-color);">Gizlilik Politikası'nı</a> okudum.
                 </label>
             </div>
-
             <div class="button-group">
                 <button id="register-submit-btn" class="primary-btn">Kaydı Tamamla</button>
                 <button id="register-cancel-btn" class="secondary-btn">İptal</button>
@@ -61,79 +154,97 @@
         </div>
     </div>
 
-    <!-- ANA UYGULAMA (Kodların kalanı aynı) -->
-    <div id="app-container" class="hidden">
-        <header>
-            <div class="user-info">
-                <span id="user-email-display"><i class="fa-solid fa-user"></i> Kullanıcı</span>
-                <div>
-                    <button id="open-group-modal-btn" class="secondary-btn" style="padding: 5px 10px; margin-right: 10px; border-color: white; color: white; background: rgba(255,255,255,0.2);"><i class="fa-solid fa-users"></i> Aile/Grup</button>
-                    <button id="logout-btn" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Çıkış</button>
-                </div>
-            </div>
+    <!-- Şifre Sıfırlama Modalı (DÜZELTİLDİ) -->
+    <div id="forgot-password-modal" class="modal hidden" style="z-index: 1050;">
+        <div class="modal-content">
+            <h3 style="color: var(--theme-color);">Şifre Sıfırlama</h3>
+            <p style="font-size: 0.9em; color: #666;">Kayıtlı e-posta adresinizi girin, size bir sıfırlama bağlantısı göndereceğiz.</p>
+            <div class="form-group"><input type="email" id="reset-email" placeholder="E-posta adresiniz"></div>
+            <div class="button-group"><button id="send-reset-btn" class="primary-btn">Bağlantı Gönder</button><button id="close-reset-btn" class="secondary-btn">İptal</button></div>
+        </div>
+    </div>
 
-            <h2>Bütçem</h2>
-            <div class="tabs">
-                <button id="tab-active" class="tab-btn active"><i class="fa-solid fa-table"></i> Aktif Tablo</button>
-                <button id="tab-summary" class="tab-btn"><i class="fa-solid fa-list"></i> Tüm Tablolar</button>
-            </div>
-            <div id="table-selector">
-                <select id="month-select"></select>
-                <button id="new-table-btn"><i class="fa-solid fa-plus"></i> Yeni Tablo Aç</button>
-            </div>
-            <div id="total-display" class="total-display">Toplam: 0 ₺</div>
-        </header>
+    <!-- Hukuki Metin Modalı -->
+    <div id="legal-modal" class="modal hidden" style="z-index: 1200;">
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+            <h3 id="legal-title" style="color: var(--theme-color);">Sözleşme</h3>
+            <div id="legal-body" style="font-size: 0.85em; color: #444; line-height: 1.6; margin-bottom: 20px;">İçerik buraya gelecek...</div>
+            <button id="close-legal-btn" class="primary-btn" style="width: 100%;">Anladım, Kapat</button>
+        </div>
+    </div>
 
-        <main id="expense-view">
-            <div id="chart-container" class="chart-container"><canvas id="expenseChart"></canvas></div>
-            <div id="expense-list"></div>
-        </main>
-        
-        <main id="summary-view" class="hidden"><div id="summary-list"></div></main>
-        <button id="fab-btn"><i class="fa-solid fa-plus"></i></button>
-
+    <!-- Diğer İşlevsel Modallar -->
+    <!-- Çalışma Alanı Modalı (Modernize Edildi) -->
         <div id="group-modal" class="modal hidden" style="z-index: 1050;">
-            <div class="modal-content">
-                <h3 style="color: var(--theme-color);"><i class="fa-solid fa-users"></i> Ortak Çalışma Alanı</h3>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 20px;">Aileniz veya ortaklarınızla aynı bütçeyi yönetmek için kendi kodunuzu onlara gönderin veya onların kodunu aşağıya girin.</p>
-                <div class="form-group" style="background: var(--background-color); padding: 15px; border-radius: 8px; text-align: center; border: 1px dashed var(--theme-color);">
-                    <label>Sizin Grup Kodunuz:</label>
-                    <strong id="my-group-code" style="font-size: 1.1em; display: block; margin-top: 5px; word-break: break-all; color: var(--color);">YÜKLENİYOR...</strong>
+            <div class="modal-content" style="text-align: center;">
+                <h3 style="color: var(--color); margin-bottom: 20px; font-size: 1.5em;"><i class="fa-solid fa-users" style="color: var(--theme-color);"></i> Çalışma Alanı</h3>
+                
+                <div class="form-group" style="background: rgba(255, 69, 34, 0.05); padding: 20px; border-radius: var(--radius-md); text-align: center; border: 1px solid rgba(255, 69, 34, 0.2);">
+                    <label style="color: var(--theme-color); font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px;">Sizin Şahsi Kodunuz</label>
+                    <strong id="my-group-code" style="font-size: 1.2em; display: block; margin-top: 8px; word-break: break-all; color: var(--color); font-family: monospace;">YÜKLENİYOR...</strong>
                 </div>
-                <div class="form-group" style="margin-top: 25px;"><label>Başka Bir Gruba Katıl (Kodu Yapıştırın):</label><input type="text" id="join-group-input" placeholder="Örn: aB3dE5fG..."></div>
-                <div class="button-group"><button id="join-group-btn" class="primary-btn"><i class="fa-solid fa-link"></i> Gruba Katıl</button><button id="close-group-modal-btn" class="secondary-btn">Kapat</button></div>
-                <div style="margin-top: 15px; text-align: center;"><button id="leave-group-btn" class="secondary-btn" style="color: #ff6b6b; border-color: transparent; width: 100%;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Gruptan Ayrıl (Kendi Bütçeme Dön)</button></div>
+                
+                <div class="form-group" style="margin-top: 25px; text-align: left;">
+                    <label>Bir Gruba Katıl (Kodu Yapıştırın)</label>
+                    <input type="text" id="join-group-input" placeholder="Örn: aB3dE5fG..." class="compact-input" style="width: 100%; padding: 12px; font-family: monospace; text-align: center;">
+                </div>
+                
+                <div class="button-group">
+                    <button id="join-group-btn" class="primary-btn"><i class="fa-solid fa-link"></i> Katıl</button>
+                    <button id="close-group-modal-btn" class="secondary-btn">Kapat</button>
+                </div>
             </div>
         </div>
 
-        <div id="expense-modal" class="modal hidden">
-            <div class="modal-content">
-                <h3 id="modal-title">Yeni Harcama</h3>
-                <div class="form-group"><label>Tablo:</label><input type="text" id="input-table" readonly></div>
-                <div class="form-group"><label>Tutar ve Para Birimi:</label><div class="row"><input type="number" id="input-amount" placeholder="Örn: 150"><select id="input-currency"><option value="₺">₺ (TRY)</option><option value="$">$ (USD)</option><option value="€">€ (EUR)</option></select></div></div>
-                <div class="form-group"><label>Kategori:</label><div class="row"><select id="input-category"></select><button type="button" id="add-category-btn" class="secondary-btn" style="flex: 0.3; padding: 10px;"><i class="fa-solid fa-folder-plus"></i></button></div></div>
-                <div class="form-group"><label>Açıklama:</label><input type="text" id="input-desc" placeholder="Nereye harcandı?"></div>
-                <div class="form-group"><label>Tarih:</label><input type="date" id="input-date"></div>
-                <div class="button-group"><button id="save-btn" class="primary-btn"><i class="fa-solid fa-check"></i> Kaydet</button><button id="cancel-btn" class="secondary-btn">İptal</button></div>
+    <div id="expense-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="modal-title">Yeni Harcama</h3>
+            <div class="form-group"><label>Tablo:</label><input type="text" id="input-table" readonly></div>
+            <div class="form-group"><label>Tutar ve Para Birimi:</label><div class="row"><input type="number" id="input-amount" placeholder="Örn: 150"><select id="input-currency"><option value="₺">₺ (TRY)</option><option value="$">$ (USD)</option><option value="€">€ (EUR)</option></select></div></div>
+            <div class="form-group"><label>Kategori:</label><div class="row"><select id="input-category"></select><button type="button" id="add-category-btn" class="secondary-btn" style="flex: 0.3; padding: 10px;"><i class="fa-solid fa-folder-plus"></i></button></div></div>
+            <div class="form-group"><label>Açıklama:</label><input type="text" id="input-desc" placeholder="Nereye harcandı?"></div>
+            <div class="form-group"><label>Tarih:</label><input type="date" id="input-date"></div>
+            <div class="button-group"><button id="save-btn" class="primary-btn"><i class="fa-solid fa-check"></i> Kaydet</button><button id="cancel-btn" class="secondary-btn">İptal</button></div>
+        </div>
+    </div>
+
+    <div id="new-month-modal" class="modal hidden" style="z-index: 1050;">
+        <div class="modal-content"><h3>Yeni Tablo Aç</h3><div class="form-group"><label>Tablo İsmi (Örn: Haziran, Ev Masrafları):</label><input type="text" id="input-new-month" placeholder="Tablo ismini girin"></div><div class="button-group"><button id="save-month-btn" class="primary-btn">Kaydet</button><button id="cancel-month-btn" class="secondary-btn">İptal</button></div></div>
+    </div>
+
+    <div id="new-category-modal" class="modal hidden" style="z-index: 1050;">
+        <div class="modal-content"><h3>Yeni Kategori Ekle</h3><div class="form-group"><label>Kategori Adı (Örn: Fatura):</label><input type="text" id="input-new-category" placeholder="Kategori adını girin"></div><div class="button-group"><button id="save-category-btn" class="primary-btn">Kaydet</button><button id="cancel-category-btn" class="secondary-btn">İptal</button></div></div>
+    </div>
+
+    <div id="confirm-modal" class="modal hidden" style="z-index: 1100;">
+        <div class="modal-content" style="text-align: center; max-width: 350px;"><h3 style="color: #ff6b6b; margin-top: 0;"><i class="fa-solid fa-triangle-exclamation"></i> Emin misiniz?</h3><p id="confirm-message" style="margin-bottom: 25px; color: #555;">Bu işlemi geri alamazsınız.</p><div class="button-group"><button id="confirm-yes-btn" class="primary-btn" style="background-color: #ff6b6b;">Evet, Sil</button><button id="confirm-no-btn" class="secondary-btn">İptal</button></div></div>
+    </div>
+
+    <div id="edit-table-modal" class="modal hidden" style="z-index: 1050;">
+        <div class="modal-content"><h3 style="color: var(--theme-color);">Tablo Adını Düzenle</h3><div class="form-group"><label>Yeni Tablo Adı:</label><input type="text" id="input-edit-table-name" placeholder="Örn: Tatil Bütçesi"></div><div class="button-group"><button id="save-edit-table-btn" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button><button id="cancel-edit-table-btn" class="secondary-btn">İptal</button></div></div>
+    </div>
+<!-- BİZE ULAŞIN MODALI -->
+    <div id="feedback-modal" class="modal hidden" style="z-index: 1050;">
+        <div class="modal-content">
+            <h3 style="color: var(--theme-color); margin-top: 0;"><i class="fa-solid fa-paper-plane"></i> Bize Ulaşın</h3>
+            <p style="font-size: 0.9em; color: #888; margin-bottom: 20px;">Görüş, öneri veya hata bildirimlerinizi bize iletin.</p>
+            <div class="form-group">
+                <label>Konu</label>
+                <select id="feedback-subject" class="compact-input" style="width: 100%;">
+                    <option value="Öneri">Öneri & Geliştirme</option>
+                    <option value="Hata Bildirimi">Hata Bildirimi</option>
+                    <option value="Diğer">Diğer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Mesajınız</label>
+                <textarea id="feedback-message" rows="4" class="compact-input" style="width: 100%; resize: none; padding: 12px; font-family: inherit;" placeholder="Ne düşünüyorsunuz?"></textarea>
+            </div>
+            <div class="button-group">
+                <button id="send-feedback-btn" class="primary-btn"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+                <button id="close-feedback-btn" class="secondary-btn">İptal</button>
             </div>
         </div>
-
-        <div id="new-month-modal" class="modal hidden" style="z-index: 1050;">
-            <div class="modal-content"><h3>Yeni Tablo Aç</h3><div class="form-group"><label>Tablo İsmi (Örn: Haziran, Ev Masrafları):</label><input type="text" id="input-new-month" placeholder="Tablo ismini girin"></div><div class="button-group"><button id="save-month-btn" class="primary-btn">Kaydet</button><button id="cancel-month-btn" class="secondary-btn">İptal</button></div></div>
-        </div>
-
-        <div id="new-category-modal" class="modal hidden" style="z-index: 1050;">
-            <div class="modal-content"><h3>Yeni Kategori Ekle</h3><div class="form-group"><label>Kategori Adı (Örn: Fatura):</label><input type="text" id="input-new-category" placeholder="Kategori adını girin"></div><div class="button-group"><button id="save-category-btn" class="primary-btn">Kaydet</button><button id="cancel-category-btn" class="secondary-btn">İptal</button></div></div>
-        </div>
-
-        <div id="confirm-modal" class="modal hidden" style="z-index: 1100;">
-            <div class="modal-content" style="text-align: center; max-width: 350px;"><h3 style="color: #ff6b6b; margin-top: 0;"><i class="fa-solid fa-triangle-exclamation"></i> Emin misiniz?</h3><p id="confirm-message" style="margin-bottom: 25px; color: #555;">Bu işlemi geri alamazsınız.</p><div class="button-group"><button id="confirm-yes-btn" class="primary-btn" style="background-color: #ff6b6b;">Evet, Sil</button><button id="confirm-no-btn" class="secondary-btn">İptal</button></div></div>
-        </div>
-
-        <div id="edit-table-modal" class="modal hidden" style="z-index: 1050;">
-            <div class="modal-content"><h3 style="color: var(--theme-color);">Tablo Adını Düzenle</h3><div class="form-group"><label>Yeni Tablo Adı:</label><input type="text" id="input-edit-table-name" placeholder="Örn: Tatil Bütçesi"></div><div class="button-group"><button id="save-edit-table-btn" class="primary-btn"><i class="fa-solid fa-floppy-disk"></i> Güncelle</button><button id="cancel-edit-table-btn" class="secondary-btn">İptal</button></div></div>
-        </div>
-
     </div>
     <script type="module" src="js/app.js"></script>
 </body>
