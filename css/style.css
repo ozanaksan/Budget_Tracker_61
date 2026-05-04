@@ -277,8 +277,16 @@ button, input, select { font-family: inherit; font-size: 100%; margin: 0; outlin
     .nav-btn.active { border-color: var(--theme-color); background-color: rgba(255, 69, 34, 0.05); }
     .nav-btn.text-danger { border-color: rgba(250, 82, 82, 0.2); }
     
-    /* İçerik Başlığı */
-    .content-header { flex-direction: column; gap: 15px; padding: 15px; align-items: stretch; }
+    /* İçerik Başlığı (Sticky İptal Edildi) */
+    .content-header { 
+        flex-direction: column; 
+        gap: 15px; 
+        padding: 15px; 
+        align-items: stretch; 
+        position: static !important; /* YENİ: Mobilde yapışmayı KESİNLİKLE iptal eder */
+        top: auto !important;
+        z-index: 1 !important;
+    }
     
     #table-selector { display: flex; flex-wrap: nowrap; gap: 10px; width: 100%; }
     #month-select { flex: 1; }

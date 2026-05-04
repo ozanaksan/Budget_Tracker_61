@@ -9,7 +9,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="assets/icon-192.png">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-    
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -92,7 +91,6 @@
             <header class="content-header">
                 <div id="table-selector">
                     <select id="month-select" class="compact-input"></select>
-                    <button id="new-table-btn" class="compact-btn" title="Yeni Tablo Ekle"><i class="fa-solid fa-plus"></i></button>
                     <!-- YENİ: Toplam göstergesi artık en sağda yalnız değil, butonun hemen yanında! -->
                     <div id="total-display" class="total-display">Toplam: 0 ₺</div>
                 </div>
@@ -126,7 +124,17 @@
                 <div id="expense-list"></div>
             </main>
             
-            <main id="summary-view" class="hidden"><div id="summary-list"></div></main>
+            <main id="summary-view" class="hidden">
+                <!-- Yeni Tablo Ekleme Alanı (Sadece burada gözükecek) -->
+                <div style="max-width: 1200px; margin: 0 auto; padding: 20px 40px 0 40px; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0; font-size: 1.5em; color: var(--color);">Kayıtlı Tablolarınız</h2>
+                    <button id="new-table-btn" class="primary-btn" style="padding: 10px 20px; font-size: 0.9em; border-radius: var(--radius-sm);">
+                        <i class="fa-solid fa-plus"></i> Yeni Tablo Oluştur
+                    </button>
+                </div>
+                <!-- Tablo Kartlarının Listelendiği Yer -->
+                <div id="summary-list"></div>
+            </main>
             <button id="fab-btn"><i class="fa-solid fa-plus"></i></button>
         </div>
     </div>

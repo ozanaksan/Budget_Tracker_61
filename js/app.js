@@ -795,18 +795,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (monthSelect) monthSelect.addEventListener('change', (e) => { currentTable = e.target.value; renderExpenses(); });
 
+    // === SEKME YÖNETİMİ (GÜNCEL) ===
     if (tabActive && tabSummary) {
         tabActive.addEventListener('click', () => {
-            tabActive.classList.add('active'); tabSummary.classList.remove('active');
-            expenseView.classList.remove('hidden'); summaryView.classList.add('hidden');
-            document.getElementById('table-selector').style.display = 'flex'; totalDisplay.style.display = 'block';
-            renderExpenses(); 
+            tabActive.classList.add('active');
+            tabSummary.classList.remove('active');
+            
+            expenseView.classList.remove('hidden');
+            summaryView.classList.add('hidden');
+            
+            // Aktif tablodayken sadece ay seçiciyi gösteriyoruz
+            if(monthSelect) monthSelect.classList.remove('hidden');
+            
+            renderExpenses();
         });
+
         tabSummary.addEventListener('click', () => {
-            tabSummary.classList.add('active'); tabActive.classList.remove('active');
-            summaryView.classList.remove('hidden'); expenseView.classList.add('hidden');
-            document.getElementById('table-selector').style.display = 'none'; totalDisplay.style.display = 'none';
-            renderSummary(); 
+            tabSummary.classList.add('active');
+            tabActive.classList.remove('active');
+            
+            summaryView.classList.remove('hidden');
+            expenseView.classList.add('hidden');
+            
+            // Tüm tablolardayken ay seçiciyi gizliyoruz (çünkü genel listedeyiz)
+            if(monthSelect) monthSelect.classList.add('hidden');
+            
+            renderSummary();
         });
     }
 
